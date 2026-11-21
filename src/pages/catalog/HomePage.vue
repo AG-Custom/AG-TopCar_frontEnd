@@ -1,0 +1,90 @@
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import VehicleCard from '../../components/VehicleCard.vue'
+import { company } from '../../config/company'
+import { vehicleService } from '../../services/vehicle.service'
+import { brandService, type CarBrand } from '../../services/brand.service'
+import type { PublicVehicle, VehicleFilters } from '../../types/entidades/vehicle'
+
+const router = useRouter()
+const filters = ref<VehicleFilters | null>(null)
+const allBrands = ref<CarBrand[]>([])
+const brandLogo = (name: string) => allBrands.value.find(item => item.name.toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'))?.logoUrl
+const featured = ref<PublicVehicle[]>([])
+const offers = computed(() => [...featured.value].sort((a, b) => Number(Boolean(b.promotionalPrice)) - Number(Boolean(a.promotionalPrice))).slice(0, 3))
+const demoCatalog = computed(() => featured.value.length > 0 && featured.value.every(vehicle => vehicle.isDemo))
+const brand = ref<string | null>(null)
+const model = ref<string | null>(null)
+const year = ref<number | null>(null)
+const search = ref('')
+const models = computed(() => [...new Set((filters.value?.combinations ?? [])
+  .filter(item => !brand.value || item.brand === brand.value).map(item => item.model))].sort())
+const years = computed(() => [...new Set((filters.value?.combinations ?? [])
+  .filter(item => (!brand.value || item.brand === brand.value) && (!model.value || item.model === model.value))
+  .map(item => item.year))].sort((a, b) => b - a))
+
+watch(brand, () => { model.value = null; year.value = null })
+watch(model, () => { year.value = null })
+
+function submitSearch() {
+  void router.push({ path: '/estoque', query: {
+    search: search.value.trim() || undefined,
+    brand: brand.value || undefined,
+    model: model.value || undefined,
+    minYear: year.value || undefined,
+    maxYear: year.value || undefined,
+  } })
+}
+
+onMounted(async () => {
+  const [filterResult, vehicleResult, brandResult] = await Promise.allSettled([
+    vehicleService.filters(), vehicleService.list({ page: 1, pageSize: 9 }), brandService.list(),
+  ])
+  if (filterResult.status === 'fulfilled') filters.value = filterResult.value
+  if (vehicleResult.status === 'fulfilled') featured.value = vehicleResult.value.items
+  if (brandResult.status === 'fulfilled') allBrands.value = brandResult.value
+})
+</script>
+
+<template>
+  <div class="home-page">
+    <section class="hero">
+      <div class="container hero-content">
+        <div class="hero-copy">
+          <p class="hero-eyebrow"><span></span> TopCar Automóveis · Serra, ES</p>
+          <h1>O próximo capítulo começa no <em>carro certo.</em></h1>
+          <p>Encontre seu próximo veículo com informação clara, boas oportunidades e atendimento de verdade.</p>
+          <RouterLink to="/estoque" class="btn btn-red">Explorar estoque <q-icon name="arrow_forward" /></RouterLink>
+        </div>
+      </div>
+      <div class="hero-photo" aria-hidden="true"></div>
+    </section>
+
+    <div class="container hero-search-wrap">
+      <form class="hero-search" @submit.prevent="submitSearch">
+        <div class="hero-search-heading"><q-icon name="search" /><div><strong>Encontre o seu próximo carro</strong><span>Busque entre os veículos disponíveis</span></div></div>
+        <div class="hero-search-fields">
+          <q-input v-model="search" label="Marca, modelo ou palavra-chave" outlined dense clearable />
+          <q-select v-model="brand" :options="filters?.brands ?? []" label="Marca" outlined dense clearable :disable="!filters?.brands.length" />
+          <q-select v-model="model" :options="models" label="Modelo" outlined dense clearable :disable="!models.length" />
+          <q-select v-model="year" :options="years" label="Ano" outlined dense clearable :disable="!years.length" />
+          <button type="submit" class="btn btn-dark">Buscar <q-icon name="arrow_forward" /></button>
+        </div>
+      </form>
+    </div>
+
+    <section v-if="filters?.brands.length" class="section container brand-section">
+      <div class="section-heading"><div><span class="section-label">Explore por marca</span><h2>Qual marca combina com você?</h2></div><RouterLink to="/estoque" class="text-link">Ver todo o estoque <q-icon name="arrow_forward" /></RouterLink></div>
+      <div class="brand-list"><RouterLink v-for="item in filters.brands" :key="item" :to="{ path: '/estoque', query: { brand: item } }" class="brand-pill"><img v-if="brandLogo(item)" :src="brandLogo(item)" :alt="`Logo ${item}`" /><strong>{{ item }}</strong><q-icon name="arrow_outward" /></RouterLink></div>
+    </section>
+
+    <section v-if="offers.length" class="section offers-section">
+      <div class="container"><div class="section-heading"><div><span class="section-label">{{ demoCatalog ? 'Prévia do catálogo' : 'Destaques do estoque' }}</span><h2>{{ demoCatalog ? 'Veja como ficará o estoque' : 'Encontre seu próximo carro' }}</h2><p>{{ demoCatalog ? 'Veículos ilustrativos para demonstrar a experiência do site.' : 'Conheça alguns veículos disponíveis no catálogo.' }}</p></div><RouterLink to="/estoque" class="text-link">Ver mais <q-icon name="arrow_forward" /></RouterLink></div>
+        <div class="vehicle-grid"><VehicleCard v-for="vehicle in offers" :key="vehicle.id" :vehicle="vehicle" /></div>
+      </div>
+    </section>
+
+    <section class="contact-banner"><div class="container banner-inner"><div><span class="section-label">Estamos por perto</span><h2>Gostou de algum veículo?</h2><p>Converse diretamente com a nossa equipe pelo WhatsApp.</p></div><a :href="company.whatsAppUrl" class="btn btn-white" target="_blank" rel="noopener noreferrer"><q-icon name="chat" /> Falar no WhatsApp</a></div></section>
+  </div>
+</template>
