@@ -1,6 +1,5 @@
 import { api } from '../boot/axios'
-
-export interface CarBrand { name: string; slug: string; logoUrl: string }
+import type { CarBrand } from '../types/entidades/brand'
 
 export const brandService = {
   async list(): Promise<CarBrand[]> {

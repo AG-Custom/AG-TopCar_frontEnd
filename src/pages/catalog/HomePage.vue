@@ -4,13 +4,20 @@ import { RouterLink, useRouter } from 'vue-router'
 import VehicleCard from '../../components/VehicleCard.vue'
 import { company } from '../../config/company'
 import { vehicleService } from '../../services/vehicle.service'
-import { brandService, type CarBrand } from '../../services/brand.service'
+import { brandService } from '../../services/brand.service'
+import type { CarBrand } from '../../types/entidades/brand'
 import type { PublicVehicle, VehicleFilters } from '../../types/entidades/vehicle'
 
 const router = useRouter()
 const filters = ref<VehicleFilters | null>(null)
 const allBrands = ref<CarBrand[]>([])
-const brandLogo = (name: string) => allBrands.value.find(item => item.name.toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'))?.logoUrl
+const normalizeBrand = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR')
+const brandIndex = computed(() => new Map(allBrands.value.map(item => [normalizeBrand(item.name), item])))
+const logoForBrand = (name: string) => brandIndex.value.get(normalizeBrand(name))
+const failedLogos = ref(new Set<string>())
+function onLogoError(name: string) {
+  failedLogos.value = new Set([...failedLogos.value, normalizeBrand(name)])
+}
 const featured = ref<PublicVehicle[]>([])
 const offers = computed(() => [...featured.value].sort((a, b) => Number(Boolean(b.promotionalPrice)) - Number(Boolean(a.promotionalPrice))).slice(0, 3))
 const demoCatalog = computed(() => featured.value.length > 0 && featured.value.every(vehicle => vehicle.isDemo))
@@ -76,7 +83,7 @@ onMounted(async () => {
 
     <section v-if="filters?.brands.length" class="section container brand-section">
       <div class="section-heading"><div><span class="section-label">Explore por marca</span><h2>Qual marca combina com você?</h2></div><RouterLink to="/estoque" class="text-link">Ver todo o estoque <q-icon name="arrow_forward" /></RouterLink></div>
-      <div class="brand-list"><RouterLink v-for="item in filters.brands" :key="item" :to="{ path: '/estoque', query: { brand: item } }" class="brand-pill"><img v-if="brandLogo(item)" :src="brandLogo(item)" :alt="`Logo ${item}`" /><strong>{{ item }}</strong><q-icon name="arrow_outward" /></RouterLink></div>
+      <div class="brand-list"><RouterLink v-for="item in filters.brands" :key="item" :to="{ path: '/estoque', query: { brand: item } }" class="brand-pill"><img v-if="logoForBrand(item)?.logoUrl && !failedLogos.has(normalizeBrand(item))" :src="logoForBrand(item)?.logoUrl ?? undefined" :alt="`Logo ${item}`" @error="onLogoError(item)" /><strong>{{ item }}</strong><q-icon name="arrow_outward" /></RouterLink></div>
     </section>
 
     <section v-if="offers.length" class="section offers-section">

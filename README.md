@@ -32,6 +32,6 @@ O site público usa a identidade TopCar e uma estrutura de concessionária com a
 
 ## Marcas e detalhes dos veículos
 
-A migração `AddCarBrands` pré-cadastra 54 marcas com caminho de logo em `MarcasVeiculos`. `GET /api/marcas` fornece a lista para o cadastro administrativo e para a seção de marcas da home. A home cruza essa lista com `/api/veiculos/filtros`, de modo que só exibe marcas com veículos publicados e disponíveis. Os arquivos ficam em `public/brands`; o catálogo que alimenta a migração está em `../Topcar_backEnd/src/TopCar.Infra.Data/Marcas/brand-catalog.json`.
+`GET /api/marcas` reúne as marcas públicas da Asetrix com 54 nomes locais de reserva. A lista alimenta o cadastro administrativo; a home cruza os logos com `/api/veiculos/filtros`, mostrando somente marcas com veículos publicados e disponíveis. A home exibe logo apenas quando a Asetrix informa `hasLogo=true` e a imagem carrega; caso contrário, mostra somente o nome. Não há arquivos locais de logos de marcas. A tabela `MarcasVeiculos` é removida pela migration `RemoverTabelaMarcas`; o catálogo de nomes de reserva permanece em `../Topcar_backEnd/src/TopCar.Infra.Data/Marcas/brand-catalog.json`.
 
 O formulário de veículos oferece características agrupadas e uma descrição livre opcional. `src/config/vehicleFeatures.ts` contém os rótulos em português e aliases para traduzir termos comuns recebidos em inglês. A Webmotors usa campos separados para itens/opcionais e observações, mas não foi encontrado um vocabulário público obrigatório; por isso, esta lista é própria da TopCar.
