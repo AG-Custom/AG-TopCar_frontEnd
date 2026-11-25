@@ -109,7 +109,7 @@ async function changePage() {
         <div class="filter-top"><div><span class="section-label">Refine sua busca</span><h2>Filtros</h2></div><button type="button" class="clear-link" @click="clearFilters">Limpar tudo</button></div>
         <form @submit.prevent="applyFilters">
           <label class="field-label" for="inventory-search">Buscar</label>
-          <q-input id="inventory-search" v-model="search" placeholder="Marca, modelo, versão..." outlined dense clearable><template #prepend><q-icon name="search" /></template></q-input>
+          <q-input id="inventory-search" v-model="search" placeholder="Digite sua busca..." outlined dense clearable><template #prepend><q-icon name="search" /></template></q-input>
           <div class="filter-divider"></div>
           <label class="field-label" for="inventory-brand">Marca</label>
           <q-select id="inventory-brand" v-model="brand" :options="filters?.brands ?? []" placeholder="Todas as marcas" outlined dense clearable :disable="!filters?.brands.length" />
@@ -119,7 +119,7 @@ async function changePage() {
           <span class="field-label">Ano do modelo</span>
           <div class="field-pair"><q-select v-model="minYear" :options="years" label="De" outlined dense clearable :disable="!years.length" /><q-select v-model="maxYear" :options="years" label="Até" outlined dense clearable :disable="!years.length" /></div>
           <div class="filter-divider"></div>
-          <span class="field-label">Intervalo de valor</span>
+          <span class="field-label">Preço</span>
           <div class="field-pair"><q-input v-model.number="minPrice" type="number" min="0" step="1000" label="Mínimo (R$)" outlined dense clearable /><q-input v-model.number="maxPrice" type="number" min="0" step="1000" label="Máximo (R$)" outlined dense clearable /></div>
           <p v-if="filterError" class="form-error" role="alert">{{ filterError }}</p>
           <button type="submit" class="btn btn-red filter-submit">Aplicar filtros <q-icon name="arrow_forward" /></button>

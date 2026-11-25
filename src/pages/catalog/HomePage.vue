@@ -2,7 +2,6 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import VehicleCard from '../../components/VehicleCard.vue'
-import { company } from '../../config/company'
 import { vehicleService } from '../../services/vehicle.service'
 import { brandService } from '../../services/brand.service'
 import type { CarBrand } from '../../types/entidades/brand'
@@ -59,7 +58,6 @@ onMounted(async () => {
     <section class="hero">
       <div class="container hero-content">
         <div class="hero-copy">
-          <p class="hero-eyebrow"><span></span> TopCar Automóveis · Serra, ES</p>
           <h1>O próximo capítulo começa no <em>carro certo.</em></h1>
           <p>Encontre seu próximo veículo com informação clara, boas oportunidades e atendimento de verdade.</p>
           <RouterLink to="/estoque" class="btn btn-red">Explorar estoque <q-icon name="arrow_forward" /></RouterLink>
@@ -92,6 +90,5 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section class="contact-banner"><div class="container banner-inner"><div><span class="section-label">Estamos por perto</span><h2>Gostou de algum veículo?</h2><p>Converse diretamente com a nossa equipe pelo WhatsApp.</p></div><a :href="company.whatsAppUrl" class="btn btn-white" target="_blank" rel="noopener noreferrer"><q-icon name="chat" /> Falar no WhatsApp</a></div></section>
   </div>
 </template>

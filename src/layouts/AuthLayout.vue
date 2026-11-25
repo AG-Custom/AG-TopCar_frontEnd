@@ -18,7 +18,6 @@ import { RouterView } from 'vue-router'
           </ul>
         </div>
 
-        <span class="auth-showcase-footer">TopCar Automóveis · Serra, ES</span>
       </div>
     </aside>
 
@@ -44,7 +43,6 @@ import { RouterView } from 'vue-router'
 .auth-benefits strong, .auth-benefits small { display: block; }
 .auth-benefits strong { font-size: 15px; font-weight: 700; }
 .auth-benefits small { margin-top: 3px; color: #aeb1b9; font-size: 13px; }
-.auth-showcase-footer { position: absolute; bottom: clamp(36px, 5vw, 78px); left: clamp(36px, 5vw, 78px); color: #92959f; font-size: 12px; }
 .auth-main { display: grid; place-items: center; min-width: 0; padding: 48px clamp(24px, 5vw, 80px); background: radial-gradient(circle at 100% 0%, #fff 0, transparent 45%), linear-gradient(150deg, #f9f7f6, #f2f1ef); }
 @media (max-width: 900px) { .auth-showcase-content { padding: 36px; } .auth-main { padding: 36px; } }
 @media (max-width: 760px) { .auth-shell { grid-template-columns: 1fr; } .auth-showcase { display: none; } .auth-main { min-height: 100svh; padding: 30px 20px 44px; } }

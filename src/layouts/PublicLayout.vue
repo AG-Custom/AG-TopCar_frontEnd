@@ -32,7 +32,7 @@ const menuOpen = ref(false)
         <div><h4>Navegação</h4><RouterLink to="/">Início</RouterLink><RouterLink to="/estoque">Estoque</RouterLink><RouterLink to="/contato">Contato</RouterLink></div>
         <div><h4>Fale conosco</h4><a :href="company.phoneHref">{{ company.phoneDisplay }}</a><span class="footer-hours">{{ company.hours }}</span><a :href="company.mapsUrl" target="_blank" rel="noopener noreferrer">{{ company.address }}</a><a :href="company.instagramUrl" target="_blank" rel="noopener noreferrer">Instagram</a></div>
       </div>
-      <div class="container footer-bottom">© {{ new Date().getFullYear() }} TopCar Automóveis. Todos os direitos reservados.</div>
+      <div class="container footer-bottom">© {{ new Date().getFullYear() }} AG Custom. Todos os direitos reservados.</div>
     </footer>
     <a class="floating-whatsapp" :href="company.whatsAppUrl" target="_blank" rel="noopener noreferrer" aria-label="Conversar com a TopCar pelo WhatsApp"><q-icon name="chat" /></a>
   </div>
