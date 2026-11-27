@@ -160,7 +160,8 @@ a { color: inherit; text-decoration: none; }
 .spec-grid strong { font-size: 14px; }
 .feature-list { display: flex; flex-wrap: wrap; gap: 10px; }
 .vehicle-description + .feature-list { margin-top: 20px; }
-.feature-list span { background: #f5f6f7; border-radius: 5px; padding: 9px 12px; font-size: 12px; }
+.feature-chip { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 8px; width: max-content; max-width: 100%; background: #f5f6f7; border-radius: 5px; padding: 9px 12px; font-size: 12px; }
+.feature-chip span { overflow-wrap: anywhere; }
 .feature-list .q-icon { color: #c2182b; }
 .detail-contact-card { background: #fff; border: 1px solid #e8eaed; border-radius: 10px; padding: 28px; position: sticky; top: 18px; display: grid; gap: 12px; box-shadow: 0 7px 20px rgba(0,0,0,.04); }
 .detail-contact-card del { color: #9da4ad; margin-top: 8px; }
@@ -232,6 +233,9 @@ a { color: inherit; text-decoration: none; }
 .editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .editor-form > .q-field { margin-top: 14px; }
 .editor-actions { display: flex; gap: 12px; margin-top: 25px; flex-wrap: wrap; }
+.editor-file-input { display: block; width: 100%; padding: 18px; border: 1px dashed #c9ced6; border-radius: 8px; background: #f8f9fb; cursor: pointer; }
+.editor-file-input::file-selector-button { border: 0; border-radius: 6px; background: #c2182b; color: #fff; font-weight: 700; padding: 10px 14px; margin-right: 14px; cursor: pointer; }
+.editor-file-input:disabled { opacity: .6; cursor: default; }
 .editor-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
 .editor-image { border: 1px solid #e4e8ed; border-radius: 7px; overflow: hidden; }
 .editor-image img { width: 100%; aspect-ratio: 1.5; object-fit: cover; }

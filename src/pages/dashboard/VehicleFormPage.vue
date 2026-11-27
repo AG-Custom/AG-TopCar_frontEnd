@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { adminVehicleService, type AdminVehicle, type VehicleInput } from '../../services/admin-vehicle.service'
 import { getApiErrorMessage } from '../../utils/apiError'
@@ -17,11 +17,13 @@ const notify = useNotificacao()
 const { user } = useAuth()
 const canPublish = computed(() => user.value?.permissions.includes('veiculos.publicar') ?? false)
 const canMove = computed(() => user.value?.permissions.includes('estoque.movimentar') ?? false)
-const id = computed(() => route.params.id === 'new' ? null : String(route.params.id))
+const id = computed(() => typeof route.params.id === 'string' ? route.params.id : null)
 const current = ref<AdminVehicle | null>(null)
 const loading = ref(false)
 const saving = ref(false)
 const imageBusy = ref(false)
+const pendingImages = ref<Array<{ file: File; previewUrl: string }>>([])
+const imageError = ref('')
 const error = ref('')
 const submitted = ref(false)
 const options = ref<VehicleOptions>({ categories: [], fuels: [], transmissions: [] })
@@ -47,15 +49,10 @@ function addCustomFeature() {
   customFeature.value = ''
 }
 const movementReason = ref('')
-const form = reactive<VehicleInput>({ internalCode: '', slug: '', category: 'Carro', brand: '', model: '', version: '', manufactureYear: new Date().getFullYear(), modelYear: new Date().getFullYear(), mileage: 0, fuel: '', transmission: '', color: '', doors: 4, description: '', regularPrice: 0, promotionalPrice: null, features: [] })
-const slugify = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-watch(() => [form.brand, form.model, form.modelYear, form.internalCode], () => {
-  if (!id.value) form.slug = slugify(`${form.brand} ${form.model} ${form.modelYear} ${form.internalCode}`)
-})
+const form = reactive<VehicleInput>({ internalCode: '', category: 'Carro', brand: '', model: '', version: '', manufactureYear: new Date().getFullYear(), modelYear: new Date().getFullYear(), mileage: 0, fuel: '', transmission: '', color: '', doors: 4, description: '', regularPrice: 0, promotionalPrice: null, features: [] })
 const requiredText = (value: string) => submitted.value && !value.trim()
 const requiredNumber = (value: number, min: number) => submitted.value &&
   (value === null || value === undefined || String(value).trim() === '' || !Number.isFinite(Number(value)) || Number(value) < min)
-const invalidSlug = computed(() => submitted.value && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug))
 const invalidPromotion = computed(() => submitted.value && form.promotionalPrice != null &&
   (Number(form.promotionalPrice) <= 0 || Number(form.promotionalPrice) >= Number(form.regularPrice)))
 async function load() {
@@ -72,32 +69,80 @@ async function load() {
 async function save() {
   error.value = ''
   submitted.value = true
-  if (!id.value) form.slug = slugify(`${form.brand} ${form.model} ${form.modelYear} ${form.internalCode}`)
-  const input: VehicleInput = { ...form, internalCode: form.internalCode.trim(), slug: form.slug.trim(), brand: form.brand.trim(), model: form.model.trim(), features: selectedFeatures.value, promotionalPrice: form.promotionalPrice || null }
-  if (!input.internalCode || invalidSlug.value || !input.category || !input.brand || !input.model ||
+  const input: VehicleInput = { ...form, internalCode: form.internalCode.trim(), brand: form.brand.trim(), model: form.model.trim(), features: selectedFeatures.value, promotionalPrice: form.promotionalPrice || null }
+  if (!input.internalCode || !input.category || !input.brand || !input.model ||
       requiredNumber(input.manufactureYear, 1886) || requiredNumber(input.modelYear, 1886) || input.modelYear < input.manufactureYear || requiredNumber(input.mileage, 0) ||
       !input.fuel || !input.transmission || !input.color.trim() || requiredNumber(input.doors, 0) ||
       requiredNumber(input.regularPrice, 0.01) || invalidPromotion.value) {
     error.value = 'Revise os campos destacados em vermelho.'
     return
   }
+  const publishOnSave = canPublish.value && (!id.value || (current.value?.statusPublicacao === 0 && current.value.situacaoEstoque === 0))
+  if (publishOnSave && (current.value?.images.length ?? 0) + pendingImages.value.length === 0) {
+    error.value = 'Selecione ao menos uma foto para publicar o veículo no catálogo.'
+    return
+  }
   saving.value = true
   try {
+    const creating = !id.value
+    const selectedCount = pendingImages.value.length
     const result = id.value ? await adminVehicleService.update(id.value, input) : await adminVehicleService.create(input)
-    notify.sucesso('Veículo salvo.')
-    if (!id.value) await router.replace(`/administracao/veiculos/${result.id}`)
-    await load()
+    let uploadFailure: unknown = null
+    for (const item of [...pendingImages.value]) {
+      try {
+        await adminVehicleService.uploadImage(result.id, item.file)
+        URL.revokeObjectURL(item.previewUrl)
+        pendingImages.value = pendingImages.value.filter(pending => pending !== item)
+      } catch (cause) { uploadFailure = cause; break }
+    }
+    if (uploadFailure) {
+      const message = `Veículo salvo, mas uma foto não foi enviada. ${getApiErrorMessage(uploadFailure)} ${creating ? 'Selecione novamente as fotos restantes.' : 'As fotos restantes continuam selecionadas para tentar novamente.'}`
+      if (creating) {
+        await router.replace(`/administracao/veiculos/${result.id}`)
+        notify.erro(message)
+      } else {
+        error.value = message
+        await load()
+      }
+      return
+    }
+    const shouldPublish = canPublish.value && result.situacaoEstoque === 0 && (creating || result.statusPublicacao === 0)
+    if (shouldPublish) {
+      try { await adminVehicleService.publish(result.id) }
+      catch (cause) {
+        const message = `Veículo e fotos salvos, mas não foi possível publicar no catálogo. ${getApiErrorMessage(cause)}`
+        if (creating) {
+          await router.replace(`/administracao/veiculos/${result.id}`)
+          notify.erro(message)
+        } else error.value = message
+        return
+      }
+    }
+    notify.sucesso(shouldPublish ? 'Veículo salvo e publicado no catálogo.' : selectedCount ? 'Veículo e fotos salvos.' : 'Veículo salvo.')
+    await router.push('/administracao/veiculos')
   } catch (cause) { error.value = getApiErrorMessage(cause) }
   finally { saving.value = false }
 }
-async function upload(event: Event) {
+function selectImages(event: Event) {
   const target = event.target as HTMLInputElement
-  if (!id.value || !target.files?.length) return
-  imageBusy.value = true
-  try { for (const file of Array.from(target.files)) await adminVehicleService.uploadImage(id.value, file); await load(); notify.sucesso('Imagens adicionadas.') }
-  catch (cause) { notify.erro(getApiErrorMessage(cause)) }
-  finally { imageBusy.value = false; target.value = '' }
+  imageError.value = ''
+  const types: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }
+  for (const file of Array.from(target.files ?? [])) {
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
+    if (types[extension] !== file.type || file.size === 0 || file.size > 10_000_000) {
+      imageError.value = 'Use fotos JPG, PNG ou WebP com até 10 MB cada.'
+      continue
+    }
+    if (pendingImages.value.some(item => item.file.name === file.name && item.file.size === file.size && item.file.lastModified === file.lastModified)) continue
+    pendingImages.value.push({ file, previewUrl: URL.createObjectURL(file) })
+  }
+  target.value = ''
 }
+function removePendingImage(index: number) {
+  const [item] = pendingImages.value.splice(index, 1)
+  if (item) URL.revokeObjectURL(item.previewUrl)
+}
+onBeforeUnmount(() => pendingImages.value.forEach(item => URL.revokeObjectURL(item.previewUrl)))
 async function setPrimary(imageId: string) {
   if (!id.value || !current.value) return
   imageBusy.value = true
@@ -150,7 +195,6 @@ onMounted(() => {
       <h2>Identificação</h2>
       <div class="editor-grid">
         <q-input v-model="form.internalCode" outlined label="Código interno *" maxlength="40" :error="requiredText(form.internalCode)" error-message="Informe o código interno." />
-        <q-input v-model="form.slug" outlined readonly label="Endereço do veículo" :error="invalidSlug" error-message="Informe marca, modelo, ano e código para gerar o endereço." hint="Gerado automaticamente para o link do veículo. Ex.: byd-dolphin-2026-2010as" />
         <q-select v-model="form.category" :options="options.categories" emit-value map-options outlined label="Categoria *" :error="submitted && !form.category" error-message="Selecione uma categoria." />
         <q-select v-model="form.brand" :options="brandOptions" use-input fill-input hide-selected input-debounce="0" behavior="menu" outlined label="Marca *" :error="requiredText(form.brand)" error-message="Selecione uma marca." @filter="filterBrandOptions" />
         <q-input v-model="form.model" outlined label="Modelo *" maxlength="80" :error="requiredText(form.model)" error-message="Informe o modelo." />
@@ -184,9 +228,21 @@ onMounted(() => {
           <template #append><q-icon name="info_outline" class="promo-info" tabindex="0" aria-label="Sobre o preço promocional"><q-tooltip>Opcional. Quando informado, deve ser menor que o preço regular e será o valor exibido no catálogo.</q-tooltip></q-icon></template>
         </q-input>
       </div>
-      <div class="editor-actions"><q-btn type="submit" color="primary" label="Salvar veículo" :loading="saving" /><q-btn v-if="current && canPublish" outline color="primary" :label="current.statusPublicacao === 1 ? 'Ocultar do site' : 'Publicar no site'" :loading="saving" @click="changePublication" /></div>
+      <h2>Fotos</h2>
+      <p>Selecione uma ou mais fotos. Elas serão enviadas ao bucket quando você salvar o veículo. {{ current?.images.length ? 'A foto principal atual será mantida.' : 'A primeira foto será a principal.' }}</p>
+      <input class="editor-file-input" type="file" accept=".jpg,.jpeg,.png,.webp" multiple :disabled="saving || imageBusy" aria-label="Selecionar fotos do veículo" @change="selectImages" />
+      <p v-if="imageError" class="form-error" role="alert">{{ imageError }}</p>
+      <div v-if="pendingImages.length" class="editor-images">
+        <div v-for="(item, index) in pendingImages" :key="item.previewUrl" class="editor-image">
+          <img :src="item.previewUrl" :alt="`Prévia de ${item.file.name}`" />
+          <div><span>{{ item.file.name }} · aguardando envio</span><button type="button" :disabled="saving" @click="removePendingImage(index)">Remover</button></div>
+        </div>
+      </div>
+      <div v-if="current?.images.length" class="editor-images">
+        <div v-for="(image, index) in current.images" :key="image.id" class="editor-image"><img :src="image.url" alt="Foto do veículo" /><div><span>{{ image.isPrimary ? 'Principal' : `Foto ${index + 1}` }}</span><button v-if="!image.isPrimary" type="button" :disabled="imageBusy || saving" @click="setPrimary(image.id)">Tornar principal</button><button type="button" :disabled="imageBusy || saving || index === 0" @click="moveImage(index, -1)">←</button><button type="button" :disabled="imageBusy || saving || index === current.images.length - 1" @click="moveImage(index, 1)">→</button><button type="button" :disabled="imageBusy || saving || (current.statusPublicacao === 1 && image.isPrimary)" @click="removeImage(image.id)">Remover</button></div></div>
+      </div>
+      <div class="editor-actions"><q-btn type="submit" color="primary" label="Salvar veículo" :loading="saving" :disable="imageBusy" /><q-btn v-if="current && canPublish" type="button" outline color="primary" :label="current.statusPublicacao === 1 ? 'Ocultar do site' : 'Publicar no site'" :loading="saving" :disable="imageBusy" @click="changePublication" /></div>
     </form>
-    <section v-if="current" class="editor-section"><h2>Fotos</h2><p>Adicione fotos antes de publicar. Selecione uma imagem principal.</p><input type="file" accept="image/jpeg,image/png,image/webp" multiple :disabled="imageBusy" @change="upload" /><div class="editor-images"><div v-for="(image, index) in current.images" :key="image.id" class="editor-image"><img :src="image.url" alt="Foto do veículo" /><div><span>{{ image.isPrimary ? 'Principal' : `Foto ${index + 1}` }}</span><button v-if="!image.isPrimary" type="button" :disabled="imageBusy" @click="setPrimary(image.id)">Tornar principal</button><button type="button" :disabled="imageBusy || index === 0" @click="moveImage(index, -1)">←</button><button type="button" :disabled="imageBusy || index === current.images.length - 1" @click="moveImage(index, 1)">→</button><button type="button" :disabled="imageBusy || (current.statusPublicacao === 1 && image.isPrimary)" @click="removeImage(image.id)">Remover</button></div></div></div></section>
     <section v-if="current && current.situacaoEstoque !== 0 && canMove" class="editor-section"><h2>Retorno ao estoque</h2><p>Registre a entrada para disponibilizar o veículo novamente.</p><div class="stock-search"><q-input v-model="movementReason" outlined label="Motivo da entrada" maxlength="200" /><q-btn color="primary" label="Registrar entrada" :disable="!movementReason.trim()" :loading="saving" @click="returnToStock" /></div></section>
   </section>
 </template>

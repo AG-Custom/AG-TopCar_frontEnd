@@ -43,8 +43,8 @@ async function submit() {
     </div>
 
     <form class="login-form" @submit.prevent="submit">
-      <label for="login-email">E-mail <span>*</span></label>
-      <input id="login-email" v-model.trim="email" type="email" name="email" placeholder="seu@email.com" autocomplete="username" required />
+      <label for="login-email">Usuário ou e-mail <span>*</span></label>
+      <input id="login-email" v-model.trim="email" type="text" name="email" placeholder="admin ou seu@email.com" autocomplete="username" required />
 
       <label for="login-password">Senha <span>*</span></label>
       <div class="login-password-field">

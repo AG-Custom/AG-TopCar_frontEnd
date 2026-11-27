@@ -32,7 +32,6 @@ export interface AdminVehicle {
 
 export interface VehicleInput {
   internalCode: string
-  slug: string
   category: string
   brand: string
   model: string
