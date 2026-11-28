@@ -11,6 +11,14 @@ const { vehicles, filters, total, pending, error, page, search, brand, model,
   minYear, maxYear, minPrice, maxPrice, sort, models, years, load, loadFilters } = catalog
 const showFilters = ref(false)
 const filterError = ref('')
+const brandOptions = ref<string[]>([])
+const modelOptions = ref<string[]>([])
+function filterBrands(value: string, update: (callback: () => void) => void) {
+  update(() => { brandOptions.value = (filters.value?.brands ?? []).filter(item => item.toLocaleLowerCase('pt-BR').includes(value.toLocaleLowerCase('pt-BR'))) })
+}
+function filterModels(value: string, update: (callback: () => void) => void) {
+  update(() => { modelOptions.value = models.value.filter(item => item.toLocaleLowerCase('pt-BR').includes(value.toLocaleLowerCase('pt-BR'))) })
+}
 const pages = computed(() => Math.max(1, Math.ceil(total.value / 12)))
 const sortOptions = [
   { label: 'Mais recentes', value: 'recent' },
@@ -112,9 +120,9 @@ async function changePage() {
           <q-input id="inventory-search" v-model="search" placeholder="Digite sua busca..." outlined dense clearable><template #prepend><q-icon name="search" /></template></q-input>
           <div class="filter-divider"></div>
           <label class="field-label" for="inventory-brand">Marca</label>
-          <q-select id="inventory-brand" v-model="brand" :options="filters?.brands ?? []" placeholder="Todas as marcas" outlined dense clearable :disable="!filters?.brands.length" />
+          <q-select id="inventory-brand" v-model="brand" :options="brandOptions" :placeholder="brand ? '' : 'Digite uma marca...'" use-input input-debounce="0" outlined dense clearable @filter="filterBrands" />
           <label class="field-label" for="inventory-model">Modelo</label>
-          <q-select id="inventory-model" v-model="model" :options="models" placeholder="Todos os modelos" outlined dense clearable :disable="!models.length" />
+          <q-select id="inventory-model" v-model="model" :options="modelOptions" :placeholder="model ? '' : 'Digite um modelo...'" use-input input-debounce="0" outlined dense clearable @filter="filterModels" />
           <div class="filter-divider"></div>
           <span class="field-label">Ano do modelo</span>
           <div class="field-pair"><q-select v-model="minYear" :options="years" label="De" outlined dense clearable :disable="!years.length" /><q-select v-model="maxYear" :options="years" label="Até" outlined dense clearable :disable="!years.length" /></div>

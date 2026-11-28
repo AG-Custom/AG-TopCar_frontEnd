@@ -70,7 +70,7 @@ onMounted(async () => {
       <form class="hero-search" @submit.prevent="submitSearch">
         <div class="hero-search-heading"><q-icon name="search" /><div><strong>Encontre o seu próximo carro</strong><span>Busque entre os veículos disponíveis</span></div></div>
         <div class="hero-search-fields">
-          <q-input v-model="search" label="Marca, modelo ou palavra-chave" outlined dense clearable />
+          <q-input v-model="search" placeholder="Digite sua busca" outlined dense clearable />
           <q-select v-model="brand" :options="filters?.brands ?? []" label="Marca" outlined dense clearable :disable="!filters?.brands.length" />
           <q-select v-model="model" :options="models" label="Modelo" outlined dense clearable :disable="!models.length" />
           <q-select v-model="year" :options="years" label="Ano" outlined dense clearable :disable="!years.length" />
