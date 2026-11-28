@@ -41,5 +41,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loaded, hydrate, login, logout }
+  function clearSession(): void {
+    authStorage.clear()
+    user.value = null
+    loaded.value = true
+  }
+
+  return { user, loaded, hydrate, login, logout, clearSession }
 })

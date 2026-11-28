@@ -13,4 +13,7 @@ export const authService = {
   async logout(): Promise<void> {
     await api.post('/api/autenticacao/sair')
   },
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.post('/api/autenticacao/trocar-senha', { senhaAtual: currentPassword, novaSenha: newPassword })
+  },
 }
