@@ -13,7 +13,6 @@ import StockExitPage from '../pages/dashboard/StockExitPage.vue'
 import VehiclesPage from '../pages/dashboard/VehiclesPage.vue'
 import VehicleFormPage from '../pages/dashboard/VehicleFormPage.vue'
 import UsersPage from '../pages/dashboard/UsersPage.vue'
-import ChangePasswordPage from '../pages/dashboard/ChangePasswordPage.vue'
 import ErrorNotFound from '../pages/ErrorNotFound.vue'
 
 function traduzirRotaAntiga(caminho: string): string {
@@ -53,7 +52,6 @@ export const routes: RouteRecordRaw[] = [
       { path: 'veiculos/novo', component: VehicleFormPage, meta: { permissao: 'veiculos.criar' } },
       { path: 'veiculos/:id', component: VehicleFormPage },
       { path: 'usuarios', component: UsersPage, meta: { permissao: 'usuarios.gerenciar' } },
-      { path: 'minha-senha', component: ChangePasswordPage },
     ],
   },
   {

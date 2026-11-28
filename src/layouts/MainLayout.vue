@@ -28,7 +28,6 @@ async function signOut() {
       <div class="admin-account">
         <span>{{ user?.name }}</span>
         <small>{{ user?.role === 'Administrador' ? 'Administrador' : 'Vendedor' }}</small>
-        <RouterLink to="/administracao/minha-senha">Alterar minha senha</RouterLink>
         <q-btn type="button" color="secondary" label="Sair" @click="signOut" />
       </div>
     </aside>
